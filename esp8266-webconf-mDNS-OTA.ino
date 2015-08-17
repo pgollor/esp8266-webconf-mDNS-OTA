@@ -138,9 +138,6 @@ static inline void ota_handle(void)
     return;
   }
 
-  Serial.print("Got OTA package:");
-  Serial.println(OTA.parsePacket());
-
   IPAddress remote = OTA.remoteIP();
   int cmd  = OTA.parseInt();
   int port = OTA.parseInt();
