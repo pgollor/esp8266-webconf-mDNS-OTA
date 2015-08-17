@@ -210,6 +210,7 @@ void handleRoot()
 
     // replace placeholder
     indexHTML.replace("[esp8266]", String(ESP.getChipId()));
+    indexHTML.replace("[rssi]", String(WiFi.RSSI()));
     indexHTML.replace("[ssid]", g_ssid);
     indexHTML.replace("[pass]", g_pass);
     indexHTML.replace("[uptime]", buff);
@@ -405,6 +406,9 @@ void loop()
   static uint16_t last_millis = 0;
   static uint16_t current_millis = 0;
 
+  // Handle OTA update.
+  ota_handle();
+
   // Alive output stuff.
   current_millis = millis() / 1000;
   if ( (current_millis - last_millis) >= 5)
@@ -413,9 +417,6 @@ void loop()
   
     Serial.println(current_millis);
   }
-
-  // Handle OTA update.
-  ota_handle();
 
   delay(10);
 
