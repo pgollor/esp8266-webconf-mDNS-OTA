@@ -4,15 +4,6 @@
  * @author Pascal Gollor (http://www.pgollor.de/cms/)
  * @data 2015-08-17
  * 
- * Information zum Dateisystem:
- * 
- * Startadressen sind in folgende Dateien enthalten:
- * arduino_esp/hardware/esp8266com/esp8266/tools/sdk/ld/eagle.flash.[X]m[Y].ld (_SPIFFS_start)
- * 
- * _SPIFFS_start - 0x40200000
- * 
- * 512K - 64K (0x10000): 0x6B000
- *  1MB - 64K (0x10000): 0xEB000
  */
 
 
@@ -39,7 +30,7 @@ const char* ap_default_psk = "esp8266esp8266"; ///< Default PSK.
 /// @}
 
 /// HTML answer on restart request.
-#define RESTART_HTML_ANSWER "<html><head><meta http-equiv=\"refresh\" content=\"15; URL=http://" HOSTNAME ".local/\"></head><body>Restarting in 15 seconds.<br/><img src=\"loading.gif\"></body></html>"
+#define RESTART_HTML_ANSWER "<html><head><meta http-equiv=\"refresh\" content=\"15; URL=http://" HOSTNAME ".local/\"></head><body>Restarting in 15 seconds.<br/><img src=\"/loading.gif\"></body></html>"
 
 /// OTA Update UDP server handle.
 WiFiUDP OTA;
@@ -47,8 +38,14 @@ WiFiUDP OTA;
 /// Webserver handle on port 80.
 ESP8266WebServer g_server(80);
 
-/// Global index.html String
-String g_indexHTML;
+/// global WiFi SSID.
+String g_ssid = "";
+
+/// global WiFi PSK.
+String g_pass = "";
+
+/// Restart will be triggert on this time
+unsigned long g_restartTime = 0;
 
 
 /**
@@ -193,26 +190,39 @@ static inline void ota_handle(void)
 
 
 /**
- * @brief Read index html from fiel system into g_indexHTML;
- * @param ssid WiFi SSID as string pointer.
- * @param pass WiFi PSK as string pointer.
+ * @brief Handle http root request.
  */
-void readIndexHTML(String *ssid, String *pass)
+void handleRoot()
 {
+  String indexHTML;
+  char buff[10];
+  uint16_t s = millis() / 1000;
+  uint16_t m = s / 60;
+  uint8_t h = m / 60;
+  
   File indexFile = SPIFFS.open("/index.html", "r");
   if (indexFile)
   {
-    g_indexHTML = indexFile.readString();
+    indexHTML = indexFile.readString();
     indexFile.close();
 
-    // replace placeholder
-    g_indexHTML.replace("[esp8266]", String(ESP.getChipId()));
-    g_indexHTML.replace("[ssid]", *ssid);
-    g_indexHTML.replace("[pass]", *pass);
+    snprintf(buff, 10, "%02d:%02d:%02d", h, m % 60, s % 60);
 
-    Serial.println(g_indexHTML);
+    // replace placeholder
+    indexHTML.replace("[esp8266]", String(ESP.getChipId()));
+    indexHTML.replace("[ssid]", g_ssid);
+    indexHTML.replace("[pass]", g_pass);
+    indexHTML.replace("[uptime]", buff);
+
+    //Serial.println(g_indexHTML);
   }
-} // readIndexHTML
+  else
+  {
+    indexHTML = "<html><head><title>File not found</title></head><body><h1>File not found.</h1></body></html>";
+  }
+  
+  g_server.send (200, "text/html", indexHTML);
+} // handleRoot
 
 
 /**
@@ -265,8 +275,9 @@ void handleSet()
     // save ssid and psk to file
     if (saveConfig(&ssid, &pass))
     {
-      // reload index.html
-      readIndexHTML(&ssid, &pass);
+      // store SSID and PSK into global variables.
+      g_ssid = ssid;
+      g_pass = pass;
 
       response += "Successfull.";
     }
@@ -308,9 +319,8 @@ void drawLoading()
  */
 void setup()
 {
-  String ssid = "";
-  String pass = "";
-  g_indexHTML.reserve(512);
+  g_ssid = "";
+  g_pass = "";
   
   Serial.begin(115200);
   
@@ -328,10 +338,10 @@ void setup()
   }
 
   // Load wifi connection information.
-  if (! loadConfig(&ssid, &pass))
+  if (! loadConfig(&g_ssid, &g_pass))
   {
-    ssid = "";
-    pass = "";
+    g_ssid = "";
+    g_pass = "";
   }
 
   Serial.println("Wait for WiFi connection.");
@@ -339,7 +349,7 @@ void setup()
   // Try to connect to WiFi AP.
   WiFi.mode(WIFI_STA);
   delay(10);
-  WiFi.begin(ssid.c_str(), pass.c_str());
+  WiFi.begin(g_ssid.c_str(), g_pass.c_str());
 
   // check connection
   if(WiFi.waitForConnectResult() == WL_CONNECTED)
@@ -372,16 +382,13 @@ void setup()
   // Open OTA Server.
   OTA.begin(APORT);
 
-  // Read index html from file system.
-  readIndexHTML(&ssid, &pass);
-
   // Initialize web server.
   // ... Add requests.
-  g_server.on("/", []() { g_server.send (200, "text/html", g_indexHTML); } );
-  g_server.on("/set", handleSet);
+  g_server.on("/", handleRoot);
+  g_server.on("/set", HTTP_GET, handleSet);
   g_server.on("/restart", []() {
     g_server.send(200, "text/html", RESTART_HTML_ANSWER);
-    ESP.restart();
+    g_restartTime = millis() + 100;
   } );
   g_server.on("/loading.gif", drawLoading);
 
@@ -414,5 +421,11 @@ void loop()
 
   // Handle Webserver requests.
   g_server.handleClient();
+
+  if (g_restartTime > 0 && millis() >= g_restartTime)
+  {
+    g_restartTime = 0;
+    ESP.restart();
+  }
 }
 
