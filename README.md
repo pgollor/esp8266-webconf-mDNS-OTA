@@ -2,4 +2,4 @@
 
 
 # License
-For license information please see LICENSE.md or mul.c
+For license information please see [License](LICENSE.md)
