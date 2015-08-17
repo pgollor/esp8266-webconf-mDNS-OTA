@@ -1,8 +1,9 @@
 # esp8266-webconf-mDNS-OTA
-For using this Arduino sketch you need the [Arduino ESP8266 Environment](https://github.com/esp8266/Arduino);
 Arduino code sample to configure the ESP8266 via http and update Over-the-Air (OTA).
 
 ## Information
+For using this Arduino sketch you need the [Arduino ESP8266 Environment](https://github.com/esp8266/Arduino)
+<br>
 The over the air (OTA) flashing stuff works only for flash size higher or equal than 1 MB.
 You can check your flash size by getting the flash chip id with the esptool python script:
 ```
