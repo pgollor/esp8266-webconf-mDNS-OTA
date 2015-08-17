@@ -400,26 +400,13 @@ void setup()
  */
 void loop()
 {
-  static uint16_t last_millis = 0;
-  static uint16_t current_millis = 0;
-
   // Handle OTA update.
   ota_handle();
-
-  // Alive output stuff.
-  current_millis = millis() / 1000;
-  if ( (current_millis - last_millis) >= 5)
-  {
-    last_millis = current_millis;
-  
-    Serial.println(current_millis);
-  }
-
-  delay(10);
 
   // Handle Webserver requests.
   g_server.handleClient();
 
+  // trigger restart?
   if (g_restartTime > 0 && millis() >= g_restartTime)
   {
     g_restartTime = 0;
