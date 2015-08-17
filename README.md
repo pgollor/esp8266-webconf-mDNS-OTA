@@ -30,7 +30,7 @@ The address is depending on your flash chip size. Here are some values for you:
 
 For other flash sizes you can get the address information from your arduino esp8266 installtion linker files located in
 `arduino_esp/hardware/esp8266com/esp8266/tools/sdk/ld/eagle.flash.[X]m[Y].ld`.
-X means the flash size and Y the spiffs size. This files contains a variable like `_SPIFFS_start`.
+`[X]` means the flash size and `[Y]` the spiffs size. This files contains a variable like `_SPIFFS_start`.
 The start address for your file system is: `_SPIFFS_start` - `0x40200000`
 
 
