@@ -30,8 +30,9 @@ esptool.py --port /dev/ttyUSB0 write_flash [Address] file.bin
 
 ### Addresses
 The address is depending on your flash chip size. Here are some values for you:
-- 512K (64K spiffs): `0x6B000`
-- 1M (64K spiffs): `0xEB000`
+- 512K (64K SPIFFS): `0x6B000`
+- 1M (64K SPIFFS): `0xEB000`
+- 4M (3M SPIFFS): `0x100000`
 
 For other flash sizes you can get the address information from your arduino esp8266 installtion linker files located in
 `arduino_esp/hardware/esp8266com/esp8266/tools/sdk/ld/eagle.flash.[X]m[Y].ld`.
