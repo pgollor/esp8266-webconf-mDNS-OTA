@@ -21,6 +21,21 @@ I use the [mkspiffs](https://github.com/igrr/mkspiffs) tool for this with the fo
 ```
 mkspiffs -c ./data/ file.bin
 ```
+This works for 64K SPIFFS and standard page and block size very well, but for higher SPIFFS size you have to customize the settings with the following options for the ESP8266 Generic module:
+
+flash size | SPIFFS | options | real size (KBytes)
+-----------|--------|---------|------------------
+512kB | 64k | nothing | 64
+1M | 64k | nothing | 64
+1M | 128k | -s 131072 | 128
+1M | 256k | -s 262144 | 256
+1M | 512k | -s 524288 -b 8192 | 512
+2M | 1M | -s 1028096 -b 8192 | 1004
+4M | 1M | -s 1028096 -b 8192 | 1004
+4M | 3M | -s 3125248 -b 8182 | 3052
+
+You can get more information at the [ESP8266 Arduino reference page](https://github.com/esp8266/Arduino/blob/esp8266/hardware/esp8266com/esp8266/doc/reference.md#file-system).
+
 
 ### Flashing Image
 After that we need to flash this binary image to the file system address into flash:
@@ -32,6 +47,7 @@ esptool.py --port /dev/ttyUSB0 write_flash [Address] file.bin
 The address is depending on your flash chip size. Here are some values for you:
 - 512K (64K SPIFFS): `0x6B000`
 - 1M (64K SPIFFS): `0xEB000`
+- 4M (1M SPIFFS): `0x300000`
 
 For other flash sizes you can get the address information from your arduino esp8266 installtion linker files located in
 `arduino_esp/hardware/esp8266com/esp8266/tools/sdk/ld/eagle.flash.[X]m[Y].ld`.
