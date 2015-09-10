@@ -27,12 +27,12 @@ flash size | SPIFFS | options | real size (KBytes)
 -----------|--------|---------|------------------
 512kB | 64k | nothing | 64
 1M | 64k | nothing | 64
-1M | 128k | -s 131072 | 128
-1M | 256k | -s 262144 | 256
-1M | 512k | -s 524288 -b 8192 | 512
-2M | 1M | -s 1028096 -b 8192 | 1004
-4M | 1M | -s 1028096 -b 8192 | 1004
-4M | 3M | -s 3125248 -b 8182 | 3052
+1M | 128k | -s 0x20000 | 128
+1M | 256k | -s 0x40000 | 256
+1M | 512k | -s 0x80000 -b 0x2000 | 512
+2M | 1M | -s 0xFB000 -b 0x2000 | 1004
+4M | 1M | -s 0xFB000 -b 0x2000 | 1004
+4M | 3M | -s 0x2FB000 -b 0x2000 | 3052
 
 You can get more information at the [ESP8266 Arduino reference page](https://github.com/esp8266/Arduino/blob/esp8266/hardware/esp8266com/esp8266/doc/reference.md#file-system).
 
