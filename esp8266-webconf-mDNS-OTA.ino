@@ -138,19 +138,29 @@ static inline void ota_handle(void)
     return;
   }
 
+  // Get remote IP
   IPAddress remote = OTA.remoteIP();
   int cmd  = OTA.parseInt();
-  int port = OTA.parseInt();
-  int size   = OTA.parseInt();
 
+  // Get remote port
+  int port = OTA.parseInt();
+
+  // Get sketch size.
+  int sketch_size = OTA.parseInt();
+
+  // Output stuff
   Serial.print("Update Start: ip:");
   Serial.print(remote);
-  Serial.printf(", port:%d, size:%d\n", port, size);
+  Serial.printf(", port:%d, size:%d\r\n", port, sketch_size);
+
+  // Stop all UDP connections.
+  WiFiUDP::stopAll();
+  
+  // OTA start Time
   uint32_t startTime = millis();
 
-  WiFiUDP::stopAll();
-
-  if(!Update.begin(size))
+  // Start Updateing.
+  if(!Update.begin(sketch_size))
   {
     Serial.println("Update Begin Error");
     return;
@@ -340,6 +350,8 @@ void setup()
   {
     g_ssid = "";
     g_pass = "";
+
+    Serial.println("No WiFi connection information available.");
   }
 
   Serial.println("Wait for WiFi connection.");
@@ -349,15 +361,26 @@ void setup()
   delay(10);
   WiFi.begin(g_ssid.c_str(), g_pass.c_str());
 
+  // Give ESP 10 seconds to connect to ap.
+  unsigned long startTime = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - startTime < 10000)
+  {
+    Serial.write('.');
+    delay(500);
+  }
+  Serial.println();
+
   // check connection
-  if(WiFi.waitForConnectResult() == WL_CONNECTED)
+  if(WiFi.status() == WL_CONNECTED)
   {
     Serial.print("IP address: ");
     Serial.println(WiFi.localIP());
   }
   else
   {
-    // Go into station mode.
+    Serial.println("Can not connect. Go into AP mode.");
+    
+    // Go into AP mode.
     WiFi.mode(WIFI_AP);
 
     delay(10);
