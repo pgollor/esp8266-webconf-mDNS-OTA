@@ -13,10 +13,6 @@
 #include <FS.h>
 #include <ESP8266WebServer.h>
 
-extern "C"
-{
-  #include "user_interface.h" ///< To call SDK functions.
-}
 
 /**
  * @brief mDNS and OTA Constants
@@ -336,6 +332,7 @@ void setup()
   g_pass = "";
   
   Serial.begin(115200);
+  //Serial.setDebugOutput(true);
   
   delay(100);
 
@@ -359,8 +356,8 @@ void setup()
     Serial.println("No WiFi connection information available.");
   }
 
-  // Set Hostname to send to DHCP server.
-  wifi_station_set_hostname(HOSTNAME);
+  // Set Hostname.
+  WiFi.hostname(HOSTNAME);
 
   Serial.println("Wait for WiFi connection.");
 
@@ -420,7 +417,6 @@ void setup()
     g_restartTime = millis() + 100;
   } );
   g_server.on("/loading.gif", drawLoading);
-  //g_server.serveStatic("/page1.html", SPIFFS, "/page1.html");
 
   // ... Start server.
   g_server.begin();
