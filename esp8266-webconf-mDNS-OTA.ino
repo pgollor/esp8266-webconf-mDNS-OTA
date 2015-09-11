@@ -13,11 +13,16 @@
 #include <FS.h>
 #include <ESP8266WebServer.h>
 
+extern "C"
+{
+  #include "user_interface.h" ///< To call SDK functions.
+}
+
 /**
  * @brief mDNS and OTA Constants
  * @{
  */
-#define HOSTNAME "esp8266" ///< Hostename 
+#define HOSTNAME "esp8266-02" ///< Hostename 
 #define APORT 8266 ///< Port for OTA update
 /// @}
 
@@ -216,7 +221,7 @@ void handleRoot()
     snprintf(buff, 10, "%02d:%02d:%02d", h, m % 60, s % 60);
 
     // replace placeholder
-    indexHTML.replace("[esp8266]", String(ESP.getChipId()));
+    indexHTML.replace("[esp8266]", String(ESP.getChipId(), HEX));
     indexHTML.replace("[rssi]", String(WiFi.RSSI()));
     indexHTML.replace("[ssid]", g_ssid);
     indexHTML.replace("[pass]", g_pass);
@@ -336,7 +341,7 @@ void setup()
 
   Serial.println("\r\n");
   Serial.print("Chip ID: ");
-  Serial.println(ESP.getChipId());
+  Serial.println(ESP.getChipId(), HEX);
 
   // Initialize file system.
   if (!SPIFFS.begin())
@@ -353,6 +358,9 @@ void setup()
 
     Serial.println("No WiFi connection information available.");
   }
+
+  // Set Hostname to send to DHCP server.
+  wifi_station_set_hostname(HOSTNAME);
 
   Serial.println("Wait for WiFi connection.");
 
@@ -412,6 +420,7 @@ void setup()
     g_restartTime = millis() + 100;
   } );
   g_server.on("/loading.gif", drawLoading);
+  //g_server.serveStatic("/page1.html", SPIFFS, "/page1.html");
 
   // ... Start server.
   g_server.begin();
