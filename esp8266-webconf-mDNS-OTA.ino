@@ -22,6 +22,9 @@
 #define APORT 8266 ///< Port for OTA update
 /// @}
 
+/// Debug output over Serial1 (GPIO2 as TX)
+#define DEBUG
+
 /**
  * @brief Default WiFi connection information.
  * @{
@@ -141,6 +144,8 @@ static inline void ota_handle(void)
 
   // Get remote IP
   IPAddress remote = OTA.remoteIP();
+
+  // dummy read
   int cmd  = OTA.parseInt();
 
   // Get remote port
@@ -181,7 +186,7 @@ static inline void ota_handle(void)
     if(Update.end())
     {
       client.println("OK");
-      Serial.printf("Update Success: %u\nRebooting...\n", millis() - startTime);
+      Serial.printf("Update Success: %u\nRebooting...\n", (unsigned int)(millis() - startTime));
       ESP.restart();
     }
     else
@@ -192,7 +197,7 @@ static inline void ota_handle(void)
   }
   else
   {
-    Serial.printf("Connect Failed: %u\n", millis() - startTime);
+    Serial.printf("Connect Failed: %u\n", (unsigned int)(millis() - startTime));
   }
 } // ota_handle
 
@@ -332,7 +337,11 @@ void setup()
   g_pass = "";
   
   Serial.begin(115200);
-  //Serial.setDebugOutput(true);
+
+#ifdef DEBUG
+  Serial1.begin(115200);
+  Serial1.setDebugOutput(true);
+#endif
   
   delay(100);
 
@@ -416,7 +425,7 @@ void setup()
     g_server.send(200, "text/html", RESTART_HTML_ANSWER);
     g_restartTime = millis() + 100;
   } );
-  g_server.on("/loading.gif", drawLoading);
+  g_server.serveStatic("/loading.gif", SPIFFS, "/loading.gif");
 
   // ... Start server.
   g_server.begin();
