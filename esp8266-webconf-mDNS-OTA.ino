@@ -22,9 +22,6 @@
 #define APORT 8266 ///< Port for OTA update
 /// @}
 
-/// Debug output over Serial1 (GPIO2 as TX)
-#define DEBUG
-
 /**
  * @brief Default WiFi connection information.
  * @{
@@ -34,7 +31,7 @@ const char* ap_default_psk = "esp8266esp8266"; ///< Default PSK.
 /// @}
 
 /// HTML answer on restart request.
-#define RESTART_HTML_ANSWER "<html><head><meta http-equiv=\"refresh\" content=\"15; URL=http://" HOSTNAME ".local/\"></head><body>Restarting in 15 seconds.<br/><img src=\"/loading.gif\"></body></html>"
+#define RESTART_HTML_ANSWER "<!DOCTYPE html><html><head><meta http-equiv=\"refresh\" content=\"15; URL=http://" HOSTNAME ".local/\"></head><body>Restarting in 15 seconds.<br/><img src=\"/loading.gif\"></body></html>"
 
 /// OTA Update UDP server handle.
 WiFiUDP OTA;
@@ -232,9 +229,9 @@ void handleRoot()
   }
   else
   {
-    indexHTML = "<html><head><title>File not found</title></head><body><h1>File not found.</h1></body></html>";
+    indexHTML = "<!DOCTYPE html><html><head><title>File not found</title></head><body><h1>File not found.</h1></body></html>";
   }
-  
+
   g_server.send (200, "text/html", indexHTML);
 } // handleRoot
 
@@ -246,7 +243,7 @@ void handleRoot()
  */
 void handleSet()
 {
-  String response = "<html><head><meta http-equiv=\"refresh\" content=\"2; URL=http://";
+  String response = "<!DOCTYPE html><html><head><meta http-equiv=\"refresh\" content=\"2; URL=http://";
   response += HOSTNAME;
   response += ".local\"></head><body>";
   
@@ -335,13 +332,8 @@ void setup()
 {
   g_ssid = "";
   g_pass = "";
-  
-  Serial.begin(115200);
 
-#ifdef DEBUG
-  Serial1.begin(115200);
-  Serial1.setDebugOutput(true);
-#endif
+  Serial.begin(115200);
   
   delay(100);
 
