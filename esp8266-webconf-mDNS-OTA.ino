@@ -39,10 +39,10 @@ WiFiUDP OTA;
 /// Webserver handle on port 80.
 ESP8266WebServer g_server(80);
 
-/// global WiFi SSID.
+/// Global WiFi SSID.
 String g_ssid = "";
 
-/// global WiFi PSK.
+/// Global WiFi PSK.
 String g_pass = "";
 
 /// Restart will be triggert on this time
