@@ -1,6 +1,8 @@
 # esp8266-webconf-mDNS-OTA
 Arduino code sample to configure the ESP8266 via http and update Over-the-Air (OTA).
 
+[![Linux build status](https://travis-ci.org/pgollor/esp8266-webconf-mDNS-OTA.svg)](https://travis-ci.org/pgollor/esp8266-webconf-mDNS-OTA)
+
 ## Information
 For using this Arduino sketch you need the [Arduino ESP8266 Environment](https://github.com/esp8266/Arduino)
 <br>
