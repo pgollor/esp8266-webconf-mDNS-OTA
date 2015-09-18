@@ -1,0 +1,25 @@
+sudo: false
+
+language: java
+
+os:
+  - linux
+
+jdk:
+  - oraclejdk8
+
+before_install:
+  - "/sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -ac -screen 0 1280x1024x16"
+
+before_script:
+  - "export DISPLAY=:99.0"
+  - sleep 3 # give xvfb some time to start
+
+script:
+  - source tests/check.sh
+  - get_arduino
+  - export PATH="$PWD/arduino-1.6.6:$PATH"
+  - which arduino
+  - ls -l
+  - arduino --board esp8266com:esp8266:generic --save-prefs
+  - build_sketch $PWD/esp8266-webconf-mDNS-OTA.ino
