@@ -18,7 +18,7 @@
  * @brief mDNS and OTA Constants
  * @{
  */
-#define HOSTNAME "esp8266-02" ///< Hostename 
+#define HOSTNAME "esp8266-06" ///< Hostename 
 #define APORT 8266 ///< Port for OTA update
 /// @}
 
@@ -418,6 +418,7 @@ void setup()
     g_restartTime = millis() + 100;
   } );
   g_server.serveStatic("/loading.gif", SPIFFS, "/loading.gif");
+  g_server.serveStatic("/style.css", SPIFFS, "/style.css");
 
   // ... Start server.
   g_server.begin();
