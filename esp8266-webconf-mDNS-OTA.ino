@@ -12,14 +12,15 @@
 #include <WiFiUdp.h>
 #include <FS.h>
 #include <ESP8266WebServer.h>
+#include <ArduinoOTA.h>
 
 
 /**
  * @brief mDNS and OTA Constants
  * @{
  */
-#define HOSTNAME "esp8266-02" ///< Hostename 
-#define APORT 8266 ///< Port for OTA update
+#define HOSTNAME "ESP8266-" ///< Hostename
+#define APORT 8266 ///< OTA Port
 /// @}
 
 /**
@@ -30,11 +31,18 @@ const char* ap_default_ssid = "esp8266"; ///< Default SSID.
 const char* ap_default_psk = "esp8266esp8266"; ///< Default PSK.
 /// @}
 
+/// Uncomment the next line for verbose output over UART.
+#define SERIAL_VERBOSE
+
 /// HTML answer on restart request.
 #define RESTART_HTML_ANSWER "<!DOCTYPE html><html><head><meta http-equiv=\"refresh\" content=\"15; URL=http://" HOSTNAME ".local/\"></head><body>Restarting in 15 seconds.<br/><img src=\"/loading.gif\"></body></html>"
 
-/// OTA Update UDP server handle.
-WiFiUDP OTA;
+/// OTA server handle.
+#ifdef SERIAL_VERBOSE
+  ArduinoOTA ota_server(HOSTNAME, APORT, true);
+#else
+ArduinoOTA ota_server(HOSTNAME, APORT, false);
+#endif
 
 /// Webserver handle on port 80.
 ESP8266WebServer g_server(80);
@@ -57,7 +65,7 @@ unsigned long g_restartTime = 0;
  * 
  * The config file have to containt the WiFi SSID in the first line
  * and the WiFi PSK in the second line.
- * Line seperator have to be \r\n (CR LF).
+ * Line seperator can be \r\n (CR LF) \r or \n.
  */
 bool loadConfig(String *ssid, String *pass)
 {
@@ -77,8 +85,21 @@ bool loadConfig(String *ssid, String *pass)
   content.trim();
 
   // Check if ther is a second line available.
-  uint8_t pos = content.indexOf("\r\n");
-  if (pos == 0)
+  int8_t pos = content.indexOf("\r\n");
+  uint8_t le = 2;
+  // check for linux and mac line ending.
+  if (pos == -1)
+  {
+    le = 1;
+    pos = content.indexOf("\n");
+    if (pos == -1)
+    {
+      pos = content.indexOf("\r");
+    }
+  }
+
+  // If there is no second line: Some information is missing.
+  if (pos == -1)
   {
     Serial.println("Infvalid content.");
     Serial.println(content);
@@ -88,11 +109,18 @@ bool loadConfig(String *ssid, String *pass)
 
   // Store SSID and PSK into string vars.
   *ssid = content.substring(0, pos);
-  *pass = content.substring(pos + 2);
+  *pass = content.substring(pos + le);
 
-  // Print SSID.
-  Serial.print("ssid: ");
-  Serial.println(*ssid);
+  ssid->trim();
+  pass->trim();
+
+#ifdef SERIAL_VERBOSE
+  Serial.println("----- file content -----");
+  Serial.println(content);
+  Serial.println("----- file content -----");
+  Serial.println("ssid: " + *ssid);
+  Serial.println("psk:  " + *pass);
+#endif
 
   return true;
 } // loadConfig
@@ -123,80 +151,6 @@ bool saveConfig(String *ssid, String *pass)
   
   return true;
 } // saveConfig
-
-
-/**
- * @brief Handle OTA update stuff.
- * 
- * This function comes from ESP8266 Arduino example:
- * https://github.com/esp8266/Arduino/blob/esp8266/hardware/esp8266com/esp8266/libraries/ESP8266mDNS/examples/DNS_SD_Arduino_OTA/DNS_SD_Arduino_OTA.ino
- *
- */
-static inline void ota_handle(void)
-{
-  if (! OTA.parsePacket())
-  {
-    return;
-  }
-
-  // Get remote IP
-  IPAddress remote = OTA.remoteIP();
-
-  // dummy read
-  int cmd  = OTA.parseInt();
-
-  // Get remote port
-  int port = OTA.parseInt();
-
-  // Get sketch size.
-  int sketch_size = OTA.parseInt();
-
-  // Output stuff
-  Serial.print("Update Start: ip:");
-  Serial.print(remote);
-  Serial.printf(", port:%d, size:%d\r\n", port, sketch_size);
-
-  // Stop all UDP connections.
-  WiFiUDP::stopAll();
-  
-  // OTA start Time
-  uint32_t startTime = millis();
-
-  // Start Updateing.
-  if(!Update.begin(sketch_size))
-  {
-    Serial.println("Update Begin Error");
-    return;
-  }
-
-  WiFiClient client;
-  if (client.connect(remote, port))
-  {
-    uint32_t written;
-    while(!Update.isFinished())
-    {
-      written = Update.write(client);
-      if(written > 0) client.print(written, DEC);
-    }
-    Serial.setDebugOutput(false);
-
-    if(Update.end())
-    {
-      client.println("OK");
-      Serial.printf("Update Success: %u\nRebooting...\n", (unsigned int)(millis() - startTime));
-      ESP.restart();
-    }
-    else
-    {
-      Update.printError(client);
-      Update.printError(Serial);
-    }
-  }
-  else
-  {
-    Serial.printf("Connect Failed: %u\n", (unsigned int)(millis() - startTime));
-  }
-} // ota_handle
 
 
 /**
@@ -338,8 +292,18 @@ void setup()
   delay(100);
 
   Serial.println("\r\n");
-  Serial.print("Chip ID: ");
+  Serial.print("Chip ID: 0x");
   Serial.println(ESP.getChipId(), HEX);
+
+  // Set Hostname.
+  String hostname(HOSTNAME);
+  hostname += String(ESP.getChipId(), HEX);
+  WiFi.hostname(hostname);
+
+  // Print hostname.
+  Serial.println("Hostname: " + hostname);
+  //Serial.println(WiFi.hostname());
+
 
   // Initialize file system.
   if (!SPIFFS.begin())
@@ -357,34 +321,57 @@ void setup()
     Serial.println("No WiFi connection information available.");
   }
 
-  // Set Hostname.
-  WiFi.hostname(HOSTNAME);
+  // Check WiFi connection
+  // ... check mode
+  if (WiFi.getMode() != WIFI_STA)
+  {
+    WiFi.mode(WIFI_STA);
+    delay(10);
+  }
+
+  // ... Compare file config with sdk config.
+  if (WiFi.SSID() != g_ssid || WiFi.psk() != g_pass)
+  {
+    Serial.println("WiFi config changed.");
+
+    // ... Try to connect to WiFi station.
+    WiFi.begin(g_ssid.c_str(), g_pass.c_str());
+
+    // ... Pritn new SSID
+    Serial.print("new SSID: ");
+    Serial.println(WiFi.SSID());
+
+    // ... Uncomment this for debugging output.
+    //WiFi.printDiag(Serial);
+  }
+  else
+  {
+    // ... Begin with sdk config.
+    WiFi.begin();
+  }
 
   Serial.println("Wait for WiFi connection.");
 
-  // Try to connect to WiFi AP.
-  WiFi.mode(WIFI_STA);
-  delay(10);
-  WiFi.begin(g_ssid.c_str(), g_pass.c_str());
-
-  // Give ESP 10 seconds to connect to ap.
+  // ... Give ESP 10 seconds to connect to station.
   unsigned long startTime = millis();
   while (WiFi.status() != WL_CONNECTED && millis() - startTime < 10000)
   {
     Serial.write('.');
+    //Serial.print(WiFi.status());
     delay(500);
   }
   Serial.println();
 
-  // check connection
+  // Check connection
   if(WiFi.status() == WL_CONNECTED)
   {
+    // ... print IP Address
     Serial.print("IP address: ");
     Serial.println(WiFi.localIP());
   }
   else
   {
-    Serial.println("Can not connect. Go into AP mode.");
+    Serial.println("Can not connect to WiFi station. Go into AP mode.");
     
     // Go into AP mode.
     WiFi.mode(WIFI_AP);
@@ -397,17 +384,8 @@ void setup()
     Serial.println(WiFi.softAPIP());
   }
 
-  // Initialize mDNS service.
-  MDNS.begin(HOSTNAME);
-
-  // ... Add OTA service.
-  MDNS.addService("arduino", "tcp", APORT);
-
-  // ... Add http service.
-  MDNS.addService("http", "tcp", 80);
-
-  // Open OTA Server.
-  OTA.begin(APORT);
+  // Start OTA server.
+  ota_server.setup();
 
   // Initialize web server.
   // ... Add requests.
@@ -429,8 +407,9 @@ void setup()
  */
 void loop()
 {
-  // Handle OTA update.
-  ota_handle();
+  // Handle OTA server.
+  ota_server.handle();
+  yield();
 
   // Handle Webserver requests.
   g_server.handleClient();
