@@ -56,6 +56,26 @@ For other flash sizes you can get the address information from your arduino esp8
 `[X]` means the flash size and `[Y]` the spiffs size. This files contains a variable like `_SPIFFS_start`.
 The start address for your file system is: `_SPIFFS_start` - `0x40200000`
 
+## Troubleshooting
+
+If OTA updates do not work you can try to clear the hole chip. I use a linux shell for the commands.
+At first create empty binary image:
+```
+dd if=/dev/zero of=clear.img bs=1024 count=1024
+```
+This creates a 1 MB image with zeros. For another chip size you have to change the `count` paramter.
+
+Flash the empty image over serial:
+```
+esptool.py --port /dev/ttyUSB0 --baud 921600 write_flash 0x00000 clear.img
+```
+
+After that we can flash the program:
+* creating SPIFFS image
+* flashind SPIFFS image
+* flashing Code
+* Happy using ;-)
+
 
 # License
 For license information please see [License](LICENSE.md)
