@@ -37,13 +37,6 @@ const char* ap_default_psk = "esp8266esp8266"; ///< Default PSK.
 /// HTML answer on restart request.
 #define RESTART_HTML_ANSWER "<!DOCTYPE html><html><head><meta http-equiv=\"refresh\" content=\"15; URL=http://" HOSTNAME ".local/\"></head><body>Restarting in 15 seconds.<br/><img src=\"/loading.gif\"></body></html>"
 
-/// OTA server handle.
-#ifdef SERIAL_VERBOSE
-  ArduinoOTA ota_server(HOSTNAME, APORT, true);
-#else
-ArduinoOTA ota_server(HOSTNAME, APORT, false);
-#endif
-
 /// Webserver handle on port 80.
 ESP8266WebServer g_server(80);
 
@@ -384,8 +377,17 @@ void setup()
     Serial.println(WiFi.softAPIP());
   }
 
-  // Start OTA server.
-  ota_server.setup();
+  // Set port
+  ArduinoOTA.setPort(APORT);
+
+  // set hostname
+  ArduinoOTA.setHostname(hostname.c_str());
+
+  // start OTA Server
+  ArduinoOTA.begin();
+
+  // No authentication by default
+  // ArduinoOTA.setPassword((const char *)"123");
 
   // Initialize web server.
   // ... Add requests.
@@ -408,7 +410,7 @@ void setup()
 void loop()
 {
   // Handle OTA server.
-  ota_server.handle();
+  ArduinoOTA.handle();
   yield();
 
   // Handle Webserver requests.
